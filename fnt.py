@@ -11,8 +11,6 @@ import json
 
 home = os.path.expanduser("~")
 
-print(home)
-
 db_file = f"{home}/fnt/notes.db"
 db_name = "fnt"
 db_pub_key_file = f"{home}/fnt/.db_pub_key.pem"
