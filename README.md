@@ -16,7 +16,7 @@
 `FNS` lets you **attach a secure note to any file** using its **unique fingerprint** (based on `mtime`).  
 Even if you **move, copy, or rename** the file — the note **stays attached**.
 
-**All notes are encrypted with RSA-2048 + OAEP**  
+**All notes are encrypted with RSA-4096 + OAEP**  
 Keys stored in: `~/.fnt/.db_priv_key.pem` (private) | `.db_pub_key.pem` (public)
 
 ---
@@ -25,7 +25,7 @@ Keys stored in: `~/.fnt/.db_priv_key.pem` (private) | `.db_pub_key.pem` (public)
 
 | Feature | Description |
 |-------|-----------|
-| **Encrypted Notes** | RSA-2048 + SHA256 OAEP |
+| **Encrypted Notes** | RSA-4096 + SHA256 OAEP |
 | **File Fingerprinting** | Uses `st_mtime` → survives copy/move |
 | **Templates** | `shell`, `exploit`, `creds` |
 | **JSON Export** | Backup all notes securely |
