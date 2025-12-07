@@ -2,7 +2,7 @@
 **Attach encrypted notes to any file – forever.**
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)  
-![Security](https://img.shields.io/badge/security-RSA%202048%20%2B%20OAEP-green)  
+![Security](https://img.shields.io/badge/security-RSA%204096%20%2B%20OAEP-green)  
 ![CTF](https://img.shields.io/badge/CTF-Friendly-red)  
 ![Kali](https://img.shields.io/badge/Kali-Linux-lightgrey)
 
