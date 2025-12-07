@@ -49,16 +49,10 @@ try:
 
 \033[1;96mAvailable templates:\033[0m
 \033[1;95m- Shell\033[0m
-    \033[1;97m1.\033[1;93m What's lhost?\033[0m
-    \033[1;97m2.\033[1;93m What's the listener port?\033[0m
 \033[1;95m- Exploit\033[0m
-    \033[1;97m1.\033[1;93m What's the CVE?\033[0m
-    \033[1;97m2.\033[1;93m What's the vulnerable service?\033[0m
-    \033[1;97m3.\033[1;93m What's the vulnerable version?\033[0m
 \033[1;95m- Creds\033[0m
-    \033[1;97m1.\033[1;93m What's the username?\033[0m
-    \033[1;97m2.\033[1;93m What's the password?\033[0m
-    \033[1;97m3.\033[1;93m What's the service that data belongs to?\033[0m
+\033[1;95m- Report\033[0m
+\033[1;95m- Bruteforce\033[0m
     \033[1;97m""",
         formatter_class=argparse.RawTextHelpFormatter
     )
@@ -69,6 +63,8 @@ try:
     parser.add_argument("-d", "--delete", default=False, action="store_true", help="Delete note for specified file")
     parser.add_argument("-j", "--json", help="Select DB to import to JSON (default 'fns')")
     parser.add_argument("-t", "--template", required=False ,help="Create note according to Template")
+    parser.add_argument("-p", "--purge", required=False ,help="Purges DB" , action="store_true" , default=False)
+
 
 
 
@@ -89,7 +85,7 @@ try:
             if decision == "1":
                 cursor.execute("DELETE FROM fns")
                 os.system(f"rm -f {db_priv_key_file}")
-                os.system(f"openssl genrsa -out {db_priv_key_file} 2048 > /dev/null 2>&1")
+                os.system(f"openssl genrsa -out {db_priv_key_file} 4096 > /dev/null 2>&1")
                 os.system(f"openssl rsa -in {db_priv_key_file} -pubout -out {db_pub_key_file} > /dev/null 2>&1")
                 os.system(f"chmod 0600 {db_pub_key_file}")
                 os.system(f"chmod 0600 {db_priv_key_file}")
@@ -121,24 +117,23 @@ try:
 
         else:
             print("\033[1;31m[-] ERROR 103 - Missing keys\033[0m")
-            os.system(f"openssl genrsa -out {db_priv_key_file} 2048 > /dev/null 2>&1")
+            os.system(f"openssl genrsa -out {db_priv_key_file} 4096 > /dev/null 2>&1")
             os.system(f"openssl rsa -in {db_priv_key_file} -pubout -out {db_pub_key_file} > /dev/null 2>&1")
             for _ in tqdm.tqdm(range(30)):
                 time.sleep(3/30)
                     
     def gen_file_fingerprint(file):
-        
-            if any(ch in file for ch in sign_blacklist):
-                print("\033[1;31m[-] ERROR 500 Blacklisted chars found in file name\033[0m")
-                exit()
-            if not os.path.isfile(file):
-                print("\033[1;31m[-] ERROR 100 - File not found\033[0m")
-                exit()
-                
-            stat_info = os.stat(file)
-            birthtime = str(stat_info.st_mtime)
-            fingerprint = hashlib.sha256(birthtime.encode()).hexdigest()
-            return fingerprint
+        if any(ch in file for ch in sign_blacklist):
+            print("\033[1;31m[-] ERROR 500 Blacklisted chars found in file name\033[0m")
+            exit()
+        if not os.path.isfile(file):
+            print("\033[1;31m[-] ERROR 100 - File not found\033[0m")
+            exit()
+            
+        stat_info = os.stat(file)
+        inode = str(stat_info.st_ino)  
+        fingerprint = hashlib.sha256(inode.encode()).hexdigest()
+        return fingerprint
 
     def check_for_file(file):
         if os.path.isfile(file):
@@ -158,7 +153,7 @@ try:
             questions = what_template_use(template)
             for question in questions:
                 answer =input(question)
-                note.append(f"{question} {answer}")
+                note.append(f"\033[1;96m{question}\033[0m\033[1;93m{answer}\033[0m")
             note = "\n".join(note)
         else:
             pass
@@ -168,7 +163,10 @@ try:
         with open(db_pub_key_file, "rb") as key:
             public_key = serialization.load_pem_public_key(key.read())
 
-        encrypted_note = public_key.encrypt(note.encode("utf-8"),padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        try: 
+            encrypted_note = public_key.encrypt(note.encode("utf-8"),padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        except ValueError:
+    	    print("\033[1;31m[-] ERROR 504 Note may be too long\033[0m")
         encrypted_note = base64.b64encode(encrypted_note).decode("utf-8")
         cursor.execute(f"INSERT OR REPLACE INTO {db_name} (file_fingerprint , note , template_used) VALUES ('{fingerprint}' , '{encrypted_note}' , '{template}');")
         db_connection.commit()
@@ -237,10 +235,34 @@ try:
 
     def what_template_use(template):
         templates = {
-        "shell": ["What is lhost: ", "What is the listener port: "],
-        "exploit": ["What is cve: ", "What is the vulnerable service: ", "What is the vulnerable version: "],
-        "creds": ["What is the username: ", "What is the password: ", "What is the service that data belongs to: "]
-    }
+            "Shell": [
+            "\033[1;96mWhat is LHOST:\033[1;93m \033[0m",
+            "\033[1;96mWhat is the listener port:\033[1;93m \033[0m",
+            "\033[1;96mShell type (nc/bash/php etc):\033[1;93m \033[0m"
+            ],
+            "Exploit": [
+                "\033[1;96mWhat is CVE:\033[1;93m \033[0m",
+                "\033[1;96mWhat is the vulnerable service:\033[1;93m \033[0m",
+                "\033[1;96mWhat is the vulnerable version:\033[1;93m \033[0m"
+            ],
+            "Creds": [
+                "\033[1;96mWhat is the username:\033[1;93m \033[0m",
+                "\033[1;96mWhat is the password:\033[1;93m \033[0m",
+                "\033[1;96mWhat is the service that data belongs to:\033[1;93m \033[0m"
+            ],
+            "Report": [
+                "\033[1;96mVulnerability/es:\033[1;93m \033[0m",
+                "\033[1;96mRisk (CVSS):\033[1;93m \033[0m",
+                "\033[1;96mVulnerable service:\033[1;93m \033[0m",
+                "\033[1;96mVulnerable endpoint (HTTP):\033[1;93m \033[0m"
+            ],
+            "Bruteforce": [
+                "\033[1;96mWhat is the address of the target:\033[1;93m \033[0m",
+                "\033[1;96mAttacked service:\033[1;93m \033[0m",
+                "\033[1;96mAttacked user:\033[1;93m \033[0m"
+            ]
+        }
+
 
         if template in templates:
             return templates[template]
@@ -271,7 +293,12 @@ try:
 except KeyboardInterrupt:
     print("\033[1;31m[-] ERROR 300 - Stopped by user (CTRL+C)\033[0m")
 
-if args.read:
+if args.purge:
+    db_connection.close()
+    os.remove(db_file)
+    print(f"\033[1;32m[+] 203 Database purged successfully\033[0m")
+    exit()
+elif args.read:
     if not args.file:
         print("\033[1;31m[-] ERROR 100 - No file specified. Use -f <file>\033[0m")
         exit(1)
